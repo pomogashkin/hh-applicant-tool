@@ -311,3 +311,38 @@ https://hh.ru/employer/1918903
 * [HH.RU OpenAPI](https://api.hh.ru/openapi/redoc)
 
 Для тестирования запросов к API используйте команду `call-api` и `jq` для вывода JSON в удобочитаемом формате.
+
+### Telegram Bot (beta)
+
+В репозитории добавлен минимальный асинхронный бот на `aiogram` с базой `SQLite` через `SQLAlchemy`.
+
+Запуск:
+
+```bash
+export TELEGRAM_BOT_TOKEN=123456:ABC...
+# опционально путь к БД (по умолчанию /workspace/hh_bot.db)
+export BOT_DATABASE_URL=sqlite+aiosqlite:////workspace/hh_bot.db
+# адрес для локального OAuth callback (бот поднимет http-сервер для приема кода)
+export BOT_OAUTH_HOST=127.0.0.1
+export BOT_OAUTH_PORT=54156
+# публичный base URL куда HH сделает редирект (укажите ваш домен/туннель)
+export BOT_PUBLIC_BASE_URL=http://127.0.0.1:54156
+# ОБЯЗАТЕЛЬНО: зарегистрируйте приложение на HH и укажите допустимый redirect_uri
+# Полученные значения укажите ниже:
+export HH_CLIENT_ID=your_client_id
+export HH_CLIENT_SECRET=your_client_secret
+# обычно scope = applicant
+export HH_SCOPE=applicant
+
+python -m hh_applicant_tool.bot.main
+# или
+hh-bot
+```
+
+Авторизация HH:
+- В боте выполните `/auth` — бот даст ссылку авторизации HH и поднимет HTTP‑сервер.
+- В настройках приложения HH redirect_uri должен совпадать с `BOT_PUBLIC_BASE_URL/oauth/callback`.
+- После логина HH перенаправит на `.../oauth/callback?code=...&state=...`; бот проверит `state`, обменяет `code` на токены и сохранит их.
+
+Первые шаги:
+- `/start`
