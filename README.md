@@ -319,25 +319,26 @@ https://hh.ru/employer/1918903
 Запуск:
 
 ```bash
-export TELEGRAM_BOT_TOKEN=123456:ABC...
-# опционально путь к БД (по умолчанию /workspace/hh_bot.db)
-export BOT_DATABASE_URL=sqlite+aiosqlite:////workspace/hh_bot.db
-# адрес для локального OAuth callback (бот поднимет http-сервер для приема кода)
-export BOT_OAUTH_HOST=127.0.0.1
-export BOT_OAUTH_PORT=54156
-# публичный base URL куда HH сделает редирект (укажите ваш домен/туннель)
-export BOT_PUBLIC_BASE_URL=http://127.0.0.1:54156
-# ОБЯЗАТЕЛЬНО: зарегистрируйте приложение на HH и укажите допустимый redirect_uri
-# Полученные значения укажите ниже:
-export HH_CLIENT_ID=your_client_id
-export HH_CLIENT_SECRET=your_client_secret
-# обычно scope = applicant
-export HH_SCOPE=applicant
+# 1) Скопируйте .env.example в .env и заполните обязательные поля
+cp .env.example .env
+# затем отредактируйте .env
 
+# 2) Установите зависимости и запустите
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+pip install -U pip
+pip install -e .
+
+# 3) Запуск бота
 python -m hh_applicant_tool.bot.main
 # или
 hh-bot
 ```
+
+Переменные `.env`:
+- `TELEGRAM_BOT_TOKEN` — обязательно
+- `HH_CLIENT_ID`, `HH_CLIENT_SECRET` — обязательно
+- `BOT_PUBLIC_BASE_URL` — обязательно и должен совпадать с redirect URI в настройках HH (`/oauth/callback`)
+- Остальные имеют дефолты в `.env.example`
 
 Авторизация HH:
 - В боте выполните `/auth` — бот даст ссылку авторизации HH и поднимет HTTP‑сервер.

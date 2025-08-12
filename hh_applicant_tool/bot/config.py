@@ -3,6 +3,15 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+try:
+    # Load .env if present
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except Exception:
+    # silently ignore if dotenv isn't installed
+    pass
+
 
 @dataclass
 class BotSettings:
