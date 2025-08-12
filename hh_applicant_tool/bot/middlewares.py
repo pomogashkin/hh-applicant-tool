@@ -9,6 +9,7 @@ from hh_applicant_tool.api import ApiClient
 
 from .db import HHTokens
 from .hh_async import AsyncHH
+from .config import BotSettings
 
 
 class DBSessionMiddleware(BaseMiddleware):
@@ -42,10 +43,13 @@ class HHClientMiddleware(BaseMiddleware):
             row = result.first()
             if row:
                 access_token, refresh_token, access_expires_at = row
+                settings = BotSettings.from_env()
                 client = ApiClient(
                     access_token=access_token,
                     refresh_token=refresh_token,
                     access_expires_at=access_expires_at,
+                    client_id=settings.hh_client_id,
+                    client_secret=settings.hh_client_secret,
                 )
                 hh_client = AsyncHH(client)
         if hh_client:

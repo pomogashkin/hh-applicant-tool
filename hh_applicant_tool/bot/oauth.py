@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import secrets
 from dataclasses import dataclass
 from typing import Optional
-from urllib.parse import urlsplit, parse_qs
 
 from aiohttp import web
 from aiogram import Router
@@ -25,15 +25,25 @@ class OAuthServer:
     site: web.TCPSite
 
 
-async def start_oauth_server(settings: BotSettings, on_code_callback) -> OAuthServer:
+# In-memory map: state -> user_id
+_PENDING_STATES: dict[str, int] = {}
+
+
+async def start_oauth_server(settings: BotSettings) -> OAuthServer:
     app = web.Application()
 
     async def handle_callback(request: web.Request) -> web.Response:
         code = request.query.get("code")
         state = request.query.get("state")
-        if not code:
-            return web.Response(text="Missing code", status=400)
-        await on_code_callback(code, state)
+        error = request.query.get("error")
+        if error:
+            return web.Response(text=f"Ошибка авторизации: {error}")
+        if not code or not state:
+            return web.Response(text="Missing code/state", status=400)
+        if state not in _PENDING_STATES:
+            return web.Response(text="Invalid or expired state", status=400)
+        # Store code in app for retrieval by waiter
+        request.app["oauth_code"] = (code, state)
         return web.Response(text="Авторизация прошла успешно. Можете вернуться в Telegram")
 
     app.add_routes([web.get("/oauth/callback", handle_callback)])
@@ -51,39 +61,50 @@ router = Router()
 async def cmd_auth(message: Message, session: AsyncSession):
     settings = BotSettings.from_env()
 
-    # Each auth request: start a one-off handler binding user_id
     user_id = message.from_user.id
+    state = secrets.token_urlsafe(24)
+    _PENDING_STATES[state] = user_id
 
-    code_future: asyncio.Future[str] = asyncio.get_running_loop().create_future()
+    # Start server
+    server = await start_oauth_server(settings)
 
-    async def on_code(code: str, state: Optional[str]):
-        if not code_future.done():
-            code_future.set_result(code)
-
-    server = await start_oauth_server(settings, on_code)
-
-    # Build authorize URL using ApiClient's OAuthClient with redirect_uri pointing to our server
-    client = ApiClient()
+    # Build authorize URL using custom client
+    client = ApiClient(client_id=settings.hh_client_id, client_secret=settings.hh_client_secret)
     client.oauth_client.redirect_uri = f"{settings.public_base_url}/oauth/callback"
+    client.oauth_client.scope = settings.hh_scope
+    client.oauth_client.state = state
     authorize_url = client.oauth_client.authorize_url
 
     await message.answer(
         "Перейдите по ссылке для авторизации на HH и дождитесь перенаправления на успешную страницу, затем вернитесь в Telegram:\n" + authorize_url
     )
 
+    # Wait for callback
     try:
-        code = await asyncio.wait_for(code_future, timeout=300)
-    except asyncio.TimeoutError:
-        await message.answer("⏳ Время ожидания авторизации истекло. Попробуйте ещё раз.")
-        # cleanup server
-        await server.runner.cleanup()
-        return
+        # poll app storage until code arrives or timeout
+        for _ in range(300):  # up to ~300 seconds
+            await asyncio.sleep(1)
+            code_state = server.app.get("oauth_code")
+            if code_state:
+                code, ret_state = code_state
+                if ret_state != state:
+                    continue
+                break
+        else:
+            await message.answer("⏳ Время ожидания авторизации истекло. Попробуйте ещё раз.")
+            await server.runner.cleanup()
+            _PENDING_STATES.pop(state, None)
+            return
+    finally:
+        pass
 
-    # Exchange code for tokens
+    # Exchange code
+    client = ApiClient(client_id=settings.hh_client_id, client_secret=settings.hh_client_secret)
+    client.oauth_client.redirect_uri = f"{settings.public_base_url}/oauth/callback"
     token = client.oauth_client.authenticate(code)
     client.handle_access_token(token)
 
-    # Save tokens to DB
+    # Save tokens
     user = await get_or_create_user(session, user_id)
     res = await session.execute(select(HHTokens).where(HHTokens.user_id == user.id))
     row = res.scalar_one_or_none()
@@ -95,7 +116,7 @@ async def cmd_auth(message: Message, session: AsyncSession):
     row.access_expires_at = client.access_expires_at
     await session.commit()
 
-    await message.answer("🔓 Авторизация HH успешно завершена. Теперь можно пользоваться меню.")
-
-    # Stop server
+    _PENDING_STATES.pop(state, None)
     await server.runner.cleanup()
+
+    await message.answer("🔓 Авторизация HH успешно завершена. Теперь можно пользоваться меню.")

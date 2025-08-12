@@ -327,6 +327,12 @@ export BOT_OAUTH_HOST=127.0.0.1
 export BOT_OAUTH_PORT=54156
 # публичный base URL куда HH сделает редирект (укажите ваш домен/туннель)
 export BOT_PUBLIC_BASE_URL=http://127.0.0.1:54156
+# ОБЯЗАТЕЛЬНО: зарегистрируйте приложение на HH и укажите допустимый redirect_uri
+# Полученные значения укажите ниже:
+export HH_CLIENT_ID=your_client_id
+export HH_CLIENT_SECRET=your_client_secret
+# обычно scope = applicant
+export HH_SCOPE=applicant
 
 python -m hh_applicant_tool.bot.main
 # или
@@ -334,9 +340,9 @@ hh-bot
 ```
 
 Авторизация HH:
-- В боте выполните `/auth` — бот даст ссылку авторизации HH, параллельно поднимет временный HTTP‑сервер.
-- После логина HH перенаправит на `BOT_PUBLIC_BASE_URL/oauth/callback` с параметром `code`.
-- Бот обменяет `code` на токены и сохранит их в БД. После этого доступно меню и просмотр вакансий.
+- В боте выполните `/auth` — бот даст ссылку авторизации HH и поднимет HTTP‑сервер.
+- В настройках приложения HH redirect_uri должен совпадать с `BOT_PUBLIC_BASE_URL/oauth/callback`.
+- После логина HH перенаправит на `.../oauth/callback?code=...&state=...`; бот проверит `state`, обменяет `code` на токены и сохранит их.
 
 Первые шаги:
 - `/start`
