@@ -311,3 +311,24 @@ https://hh.ru/employer/1918903
 * [HH.RU OpenAPI](https://api.hh.ru/openapi/redoc)
 
 Для тестирования запросов к API используйте команду `call-api` и `jq` для вывода JSON в удобочитаемом формате.
+
+### Telegram Bot (beta)
+
+В репозитории добавлен минимальный асинхронный бот на `aiogram` с базой `SQLite` через `SQLAlchemy`.
+
+Запуск:
+
+```bash
+export TELEGRAM_BOT_TOKEN=123456:ABC...
+# опционально путь к БД (по умолчанию /workspace/hh_bot.db)
+export BOT_DATABASE_URL=sqlite+aiosqlite:////workspace/hh_bot.db
+
+python -m hh_applicant_tool.bot.main
+# или
+hh-bot
+```
+
+Первые шаги:
+- `/start` — регистрация и выбор роли «Графический дизайнер» (пока только она).
+- `/auth` — временно: ответом на сообщение пришлите JSON c `access_token`, `refresh_token`, `access_expires_at`.
+- Кнопка «Посмотреть вакансии» — показывает одну вакансию по фильтрам (зарплата от 100к, удаленно/гибко, исключая UX/UI в описании). Кнопки: открыть вакансию, дальше (пагинация в работе), в меню.

@@ -12,6 +12,9 @@ requests = {extras = ["socks"], version = "^2.32.3"}
 prettytable = "^3.6.0"
 pyqt6 = { version = "6.7.0", optional = true }
 pyqt6-webengine = { version = "6.7.0", optional = true }
+aiogram = "^3.4.1"
+sqlalchemy = "^2.0.32"
+aiosqlite = "^0.20.0"
 
 [tool.poetry.extras]
 qt = ["pyqt6", "pyqt6-webengine"]
@@ -28,6 +31,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 hh-applicant-tool = "hh_applicant_tool.main:main"
+hh-bot = "hh_applicant_tool.bot.main:main"
 
 # Он заебал агриться на старый код, который был написан до появления агрессивной
 # проверки типов в pyright
