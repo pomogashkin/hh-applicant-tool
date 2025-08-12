@@ -322,13 +322,21 @@ https://hh.ru/employer/1918903
 export TELEGRAM_BOT_TOKEN=123456:ABC...
 # опционально путь к БД (по умолчанию /workspace/hh_bot.db)
 export BOT_DATABASE_URL=sqlite+aiosqlite:////workspace/hh_bot.db
+# адрес для локального OAuth callback (бот поднимет http-сервер для приема кода)
+export BOT_OAUTH_HOST=127.0.0.1
+export BOT_OAUTH_PORT=54156
+# публичный base URL куда HH сделает редирект (укажите ваш домен/туннель)
+export BOT_PUBLIC_BASE_URL=http://127.0.0.1:54156
 
 python -m hh_applicant_tool.bot.main
 # или
 hh-bot
 ```
 
+Авторизация HH:
+- В боте выполните `/auth` — бот даст ссылку авторизации HH, параллельно поднимет временный HTTP‑сервер.
+- После логина HH перенаправит на `BOT_PUBLIC_BASE_URL/oauth/callback` с параметром `code`.
+- Бот обменяет `code` на токены и сохранит их в БД. После этого доступно меню и просмотр вакансий.
+
 Первые шаги:
-- `/start` — регистрация и выбор роли «Графический дизайнер» (пока только она).
-- `/auth` — временно: ответом на сообщение пришлите JSON c `access_token`, `refresh_token`, `access_expires_at`.
-- Кнопка «Посмотреть вакансии» — показывает одну вакансию по фильтрам (зарплата от 100к, удаленно/гибко, исключая UX/UI в описании). Кнопки: открыть вакансию, дальше (пагинация в работе), в меню.
+- `/start`

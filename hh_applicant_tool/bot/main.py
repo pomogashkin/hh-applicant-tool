@@ -9,7 +9,7 @@ from .config import BotSettings
 from .db import create_database
 from .middlewares import DBSessionMiddleware, HHClientMiddleware
 from .handlers import router as main_router
-from .auth import router as auth_router
+from .oauth import router as oauth_router
 
 
 async def run_bot() -> None:
@@ -24,7 +24,7 @@ async def run_bot() -> None:
     dp.message.middleware(HHClientMiddleware())
     dp.callback_query.middleware(HHClientMiddleware())
 
-    dp.include_router(auth_router)
+    dp.include_router(oauth_router)
     dp.include_router(main_router)
 
     bot = Bot(settings.telegram_token, parse_mode=None)
